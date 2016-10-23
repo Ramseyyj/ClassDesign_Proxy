@@ -1,70 +1,141 @@
 import numpy as np
 
-file_score = open('douban1.txt', 'r')
-file_interested_matrix = open('interested_matrix.txt', 'w')
-# file_relation = open('follow(in-out).txt', 'r')
 
-users_set = set([])
-movies_set = set([])
+def users_topics_count(filename):
 
-for line in file_score:
-    line = line.strip('\n').split('::')
-    users_set.add(line[0])
-    movies_set.add(line[1])
+    file_score = open(filename, 'r')
 
-users_count = len(users_set)
-movies_count = len(movies_set)
+    users_set = set([])
+    topics_set = set([])
 
-file_score.close()
+    for line in file_score:
+        line = line.strip('\n').split('::')
+        users_set.add(line[0])
+        topics_set.add(line[1])
 
-# m = np.array([[0, 0],
-#               [0, 0]])
-#
-# for line in file_relation:
-#     line = line.strip('\n').split()
-#     if line[0] in users:
-#         if line[1] in users:
-#             m[0, 0] += 1
-#         else:
-#             m[0, 1] += 1
-#     else:
-#         if line[1] in users:
-#             m[1, 0] += 1
-#         else:
-#             m[1, 1] += 1
-#
-# print(m)
+    users_count = len(users_set)
+    topics_count = len(topics_set)
 
-file_score = open('douban1.txt', 'r')
+    file_score.close()
 
-users = []
-topics = []
-m = np.zeros((users_count, movies_count))
+    return users_count, topics_count
 
-for line in file_score:
-    line = line.strip('\n').split('::')
 
-    if line[0] not in set(users):
-        users.append(line[0])
+def interested_matrix_compute(users_count, topics_count):
 
-    if line[1] not in set(topics):
-        topics.append(line[1])
+    file_score = open('douban1.txt', 'r')
 
-    user_index = users.index(line[0])
-    topic_index = topics.index(line[1])
+    users = []
+    topics = []
+    m = np.zeros((users_count, topics_count))
 
-    m[user_index, topic_index] = line[2]
+    for line in file_score:
+        line = line.strip('\n').split('::')
 
-for i in range(m.shape[0]):
-    des = 0
-    for j in range(m.shape[1]):
-        if m[i, j] != 0.0:
-            des += 1
-        print('%r ' % (m[i, j]), end='', file=file_interested_matrix)
-    print('%f\n' % (des / m.shape[1]), file=file_interested_matrix)
+        if line[0] not in set(users):
+            users.append(line[0])
 
-print(m.shape)
+        if line[1] not in set(topics):
+            topics.append(line[1])
 
-file_score.close()
-file_interested_matrix.close()
-# file_relation.close()
+        user_index = users.index(line[0])
+        topic_index = topics.index(line[1])
+
+        m[user_index, topic_index] = line[2]
+
+    file_score.close()
+
+    return m
+
+
+def density_compute(m):
+
+    users_des = []
+    for i in range(m.shape[0]):
+        temp_des = 0
+        for j in range(m.shape[1]):
+            if m[i, j] != 0.0:
+                temp_des += 1
+        users_des.append(temp_des / m.shape[1])
+
+    return users_des
+
+
+# 选取核心用户
+def core_users_select(matrix):
+
+    density = density_compute(matrix)
+
+    core_users_list = []
+    for i in range(len(density)):
+        if density[i] > const_lambda:
+            core_users_list.append(i)
+
+    return core_users_list
+
+
+# 计算Ci_set聚类的模糊度Ambi
+def Ambi_compute(matrix, Ci_set):
+
+    Ci_user_count = len(Ci_set)
+
+    Ambi = 0
+    Psj = np.zeros((matrix.shape[1]))
+    pij = np.zeros((matrix.shape[1]))
+    Ambij = np.zeros((matrix.shape[1]))
+
+    for user in Ci_set:
+        for sj in range(matrix.shape[1]):
+            if matrix[user, sj] > 0.0:
+                Psj[sj] += 1
+
+    for i in range(matrix.shape[1]):
+        pij[i] = Psj[i] / Ci_user_count
+
+        if pij[i] >= const_delta:
+            Ambij[i] = Ci_user_count - Psj[i]
+        else:
+            Ambij[i] = Psj[i]
+
+        Ambi += Ambij[i]
+
+    return Ambi
+
+
+# 计算全局模糊度Amb
+def Amb_compute(matrix, Clus):
+
+
+
+
+# 图摘要算法
+def SNAP_cluster_algorithm(matrix, k_iteration):
+
+    core_users = core_users_select(matrix)
+    Clus = [set(core_users)]
+
+    maxAmb = 0
+    srcCi = 0
+    target = 0
+    Amb = 1
+    k = 0
+
+    while Amb == 0 or k == k_iteration:
+        k += 1
+        for Ci in Clus:
+
+
+
+
+
+usersCount, topicCount = users_topics_count('douban1.txt')
+interestedMatrix = interested_matrix_compute(usersCount, topicCount)
+
+
+# 强度阈值
+const_delta = 0.001
+
+# 密度阈值
+const_lambda = 0.001
+
+
