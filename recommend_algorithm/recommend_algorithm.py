@@ -75,15 +75,23 @@ def core_users_select(matrix):
     return core_users_list
 
 
-# 计算Ci_set聚类的模糊度Ambi
-def Ambi_compute(matrix, Ci_set, Ambij_flag):
+def Psj_compute(matrix, Ci_set):
+
+    Psj = np.zeros((matrix.shape[1]))
+
+    for user in Ci_set:
+        for sj in range(matrix.shape[1]):
+            if matrix[user, sj] > 0.0:
+                Psj[sj] += 1
+
+    return Psj
+
+
+def pij_compute(matrix, Ci_set, Psj):
 
     Ci_user_count = len(Ci_set)
 
-    Ambi = 0
-    Psj = np.zeros((matrix.shape[1]))
     pij = np.zeros((matrix.shape[1]))
-    Ambij = np.zeros((matrix.shape[1]))
 
     for user in Ci_set:
         for sj in range(matrix.shape[1]):
@@ -92,6 +100,20 @@ def Ambi_compute(matrix, Ci_set, Ambij_flag):
 
     for i in range(matrix.shape[1]):
         pij[i] = Psj[i] / Ci_user_count
+
+    return pij
+
+# 计算Ci_set聚类的模糊度Ambi
+def Ambi_compute(matrix, Ci_set, Ambij_flag):
+
+    Ci_user_count = len(Ci_set)
+
+    Ambi = 0
+    Psj = Psj_compute(matrix, Ci_set)
+    pij = pij_compute(matrix, Ci_set, Psj)
+    Ambij = np.zeros((matrix.shape[1]))
+
+    for i in range(matrix.shape[1]):
 
         if pij[i] >= const_delta:
             Ambij[i] = Ci_user_count - Psj[i]
@@ -112,13 +134,56 @@ def Amb_compute(matrix, Clus):
     Ambi_sum = 0
 
     for Ci_set in Clus:
-        Ambi = Ambi_compute(matrix, Ci_set)
+
+        Ambi = Ambi_compute(matrix, Ci_set, False)
         Ambi_sum += Ambi
 
     return math.log(Ambi_sum / len(Clus))
 
 
+# 计算Ci_set聚类在每个主题上的兴趣度caij
+def caij_compute(matrix, Ci_set):
 
+    caij = np.zeros((matrix.shape[1]))
+    Psj = Psj_compute(matrix, Ci_set)
+    pij = pij_compute(matrix, Ci_set, Psj)
+
+    for i in range(matrix.shape[1]):
+
+        if pij[i] >= const_delta:
+
+            temp_sum = 0
+            for user in Ci_set:
+                temp_sum += matrix[user, i]
+
+            caij = temp_sum / len(Ci_set)
+
+        else:
+            caij = 0
+
+    return caij
+
+
+def diff_compute(matrix, Ci_set, Cj_set):
+
+    cvi = caij_compute(matrix, Ci_set)
+    cvj = caij_compute(matrix, Cj_set)
+
+    diff = cvi.dot(cvj) / (np.linalg.norm(cvi) * np.linalg.norm(cvj))
+
+    return diff
+
+
+def dvst_compute(matrix, Clus):
+
+    temp_sum = 0
+    for Ci in Clus:
+        for Cj in Clus:
+            temp_sum += diff_compute(matrix, Ci, Cj)
+
+    dvst = temp_sum / len(Clus)
+
+    return dvst
 
 
 def Cluster_split(matrix, Ci, target):
@@ -164,9 +229,9 @@ def SNAP_cluster_algorithm(matrix, k_iteration):
         Clus.append(Ci2)
 
         Amb = Amb_compute(matrix, Clus)
+        dvst = dvst_compute(matrix, Clus)
 
-
-
+    return Clus, Amb, dvst
 
 
 usersCount, topicCount = users_topics_count('douban1.txt')
