@@ -1,6 +1,7 @@
 import numpy as np
 import math
 
+const_maxfloat = 1.7976931348623157e+308
 
 def users_topics_count(filename):
 
@@ -102,6 +103,7 @@ def pij_compute(matrix, Ci_set, Psj):
         pij[i] = Psj[i] / Ci_user_count
 
     return pij
+
 
 # 计算Ci_set聚类的模糊度Ambi
 def Ambi_compute(matrix, Ci_set, Ambij_flag):
@@ -234,8 +236,38 @@ def SNAP_cluster_algorithm(matrix, k_iteration):
     return Clus, Amb, dvst
 
 
+# 全用户聚类
+def All_users_cluster(matrix, core_cluster):
+
+    all_users = set([i for i in range(matrix.shape[0])])
+    core_users = core_users_select(matrix)
+    non_core_users = all_users - set(core_users)
+
+    cvi = np.zeros((len(core_cluster), matrix.shape[1]))
+    for i in range(len(core_cluster)):
+        caij = caij_compute(matrix, core_cluster[i])
+        cvi[i] = caij
+
+    for user in non_core_users:
+        min_dist = const_maxfloat
+        min_index = 0
+
+        for j in range(len(cvi)):
+            dist = np.linalg.norm(cvi[j] - matrix[user, :])
+
+            if dist < min_dist:
+                min_dist = dist
+                min_index = j
+
+        core_cluster[min_index].add(user)
+
+    return core_cluster
+
+
 usersCount, topicCount = users_topics_count('douban1.txt')
 interestedMatrix = interested_matrix_compute(usersCount, topicCount)
+
+core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(interestedMatrix, 20)
 
 
 # 强度阈值
