@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 
 def users_topics_count(filename):
@@ -75,7 +76,7 @@ def core_users_select(matrix):
 
 
 # 计算Ci_set聚类的模糊度Ambi
-def Ambi_compute(matrix, Ci_set):
+def Ambi_compute(matrix, Ci_set, Ambij_flag):
 
     Ci_user_count = len(Ci_set)
 
@@ -99,13 +100,39 @@ def Ambi_compute(matrix, Ci_set):
 
         Ambi += Ambij[i]
 
-    return Ambi
+    if Ambij_flag:
+        return Ambij, Ambi
+    else:
+        return Ambi
 
 
 # 计算全局模糊度Amb
 def Amb_compute(matrix, Clus):
 
+    Ambi_sum = 0
 
+    for Ci_set in Clus:
+        Ambi = Ambi_compute(matrix, Ci_set)
+        Ambi_sum += Ambi
+
+    return math.log(Ambi_sum / len(Clus))
+
+
+
+
+
+def Cluster_split(matrix, Ci, target):
+
+    Ci1 = set([])
+    Ci2 = set([])
+
+    for user in Ci:
+        if matrix[user, target] > 0:
+            Ci1.add(user)
+        else:
+            Ci2.add(user)
+
+    return Ci1, Ci2
 
 
 # 图摘要算法
@@ -122,7 +149,21 @@ def SNAP_cluster_algorithm(matrix, k_iteration):
 
     while Amb == 0 or k == k_iteration:
         k += 1
-        for Ci in Clus:
+        for i in range(len(Clus)):
+
+            Ambij, Ambi = Ambi_compute(matrix, Clus[i], True)
+            sj = np.argmax(Ambij)
+            if Ambi > maxAmb:
+                maxAmb = Ambi
+                target = sj
+                srcCi = i
+
+        Ci1, Ci2 = Cluster_split(matrix, Clus[srcCi], target)
+        Clus.pop(srcCi)
+        Clus.append(Ci1)
+        Clus.append(Ci2)
+
+        Amb = Amb_compute(matrix, Clus)
 
 
 
