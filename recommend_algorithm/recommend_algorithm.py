@@ -125,7 +125,7 @@ def Ambi_compute(matrix, Ci_set, Ambij_flag):
     for i in range(matrix.shape[1]):
 
         if pij[i] >= const_delta:
-            Ambij[i] = Ci_user_count - Psj[i]
+            Ambij[i] = abs(Ci_user_count - Psj[i])
         else:
             Ambij[i] = Psj[i]
 
@@ -243,6 +243,8 @@ def SNAP_cluster_algorithm(matrix, k_iteration):
         Amb = Amb_compute(matrix, Clus)
         dvst = dvst_compute(matrix, Clus)
 
+    print(k)
+
     return Clus, Amb, dvst
 
 
@@ -276,7 +278,7 @@ def All_users_cluster(matrix, core_cluster):
 usersCount, topicCount = users_topics_count('douban1.txt')
 interestedMatrix = interested_matrix_compute(usersCount, topicCount)
 
-core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(interestedMatrix, 20)
+core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(interestedMatrix, 10)
 
 all_users_cluster_g = All_users_cluster(interestedMatrix, core_cluster_g)
 
