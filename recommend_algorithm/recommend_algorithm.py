@@ -3,6 +3,13 @@ import math
 
 const_maxfloat = 1.7976931348623157e+308
 
+# 强度阈值
+const_delta = 0.001
+
+# 密度阈值
+const_lambda = 0.008
+
+
 def users_topics_count(filename):
 
     file_score = open(filename, 'r')
@@ -158,10 +165,10 @@ def caij_compute(matrix, Ci_set):
             for user in Ci_set:
                 temp_sum += matrix[user, i]
 
-            caij = temp_sum / len(Ci_set)
+            caij[i] = temp_sum / len(Ci_set)
 
         else:
-            caij = 0
+            caij[i] = 0
 
     return caij
 
@@ -212,9 +219,10 @@ def SNAP_cluster_algorithm(matrix, k_iteration):
     srcCi = 0
     target = 0
     Amb = 1
+    dvst = 1
     k = 0
 
-    while Amb == 0 or k == k_iteration:
+    while Amb == 0 or k != k_iteration:
         k += 1
         for i in range(len(Clus)):
 
@@ -227,8 +235,10 @@ def SNAP_cluster_algorithm(matrix, k_iteration):
 
         Ci1, Ci2 = Cluster_split(matrix, Clus[srcCi], target)
         Clus.pop(srcCi)
-        Clus.append(Ci1)
-        Clus.append(Ci2)
+        if len(Ci1) != 0:
+            Clus.append(Ci1)
+        if len(Ci2) != 0:
+            Clus.append(Ci2)
 
         Amb = Amb_compute(matrix, Clus)
         dvst = dvst_compute(matrix, Clus)
@@ -263,17 +273,11 @@ def All_users_cluster(matrix, core_cluster):
 
     return core_cluster
 
-
 usersCount, topicCount = users_topics_count('douban1.txt')
 interestedMatrix = interested_matrix_compute(usersCount, topicCount)
 
 core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(interestedMatrix, 20)
 
+all_users_cluster_g = All_users_cluster(interestedMatrix, core_cluster_g)
 
-# 强度阈值
-const_delta = 0.001
-
-# 密度阈值
-const_lambda = 0.001
-
-
+print(all_users_cluster_g)
