@@ -11,6 +11,7 @@ const_delta = 0.001
 const_lambda = 0.008
 
 
+# 生成一个row*column的矩阵，值范围为
 def random_matrix(row, column):
 
     m = np.zeros((row, column))
@@ -435,26 +436,21 @@ def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
 
 # usersCount, topicCount = users_topics_count('douban1.txt')
 # interestedMatrix = interested_matrix_compute(usersCount, topicCount)
-interestedMatrix = random_matrix(10, 5)
-print('interestedMatrix complete')
-print(interestedMatrix.shape)
+interestedMatrix = random_matrix(500, 50)
+TOP_K = 30
 
 N_g = interestedMatrix.shape[0]
 Train_Matrix = interestedMatrix[:int(4 * N_g / 5), :]
 Test_Matrix = interestedMatrix[:int(4 * N_g / 5) + 1, :]
 
 core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(Train_Matrix, 10)
-print('SNAP_cluster_algorithm complete')
 
 all_users_cluster_g = All_users_cluster(Train_Matrix, core_cluster_g)
-print('All_users_cluster complete')
 
-Recall_g = recall_compute(Train_Matrix, all_users_cluster_g, Test_Matrix, 3)
-print('recall_compute complete')
+Recall_g = recall_compute(Train_Matrix, all_users_cluster_g, Test_Matrix, TOP_K)
 
-RMSE_g = RMSE_compute(Train_Matrix, all_users_cluster_g, Test_Matrix, 3)
-print('RMSE_compute complete')
+RMSE_g = RMSE_compute(Train_Matrix, all_users_cluster_g, Test_Matrix, TOP_K)
 
-print(Recall_g)
-print(RMSE_g)
+print('recall: %r' % Recall_g)
+print('RMSE: %r' % RMSE_g)
 
