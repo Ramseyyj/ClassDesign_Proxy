@@ -243,8 +243,6 @@ def SNAP_cluster_algorithm(matrix, k_iteration):
         Amb = Amb_compute(matrix, Clus)
         dvst = dvst_compute(matrix, Clus)
 
-    print(k)
-
     return Clus, Amb, dvst
 
 
@@ -275,11 +273,165 @@ def All_users_cluster(matrix, core_cluster):
 
     return core_cluster
 
+
+def devij_compute(matrix, Gclus, si, sj):
+
+    temp_sum = 0
+    for i in range(len(Gclus)):
+        cvi = caij_compute(matrix, Gclus[i])
+        temp_sum += cvi[si] - cvi[sj]
+
+    devij = temp_sum / len(Gclus)
+
+    return devij
+
+
+def recommand_matrix(matrix_train, Gclus):
+
+    reMatrix = np.zeros((len(Gclus), matrix_train.shape[1]))
+    preMatrix = np.zeros((len(Gclus), matrix_train.shape[1]))
+
+    for i in range(len(Gclus)):
+
+        cvi = caij_compute(matrix_train, Gclus[i])
+        aver_cvi = np.mean(cvi)
+        M = matrix_train.shape[1]
+        cv1 = np.zeros(M)
+
+        for j in range(M):
+            if cvi[j] == 0.0:
+
+                temp_sum = 0
+                for k in range(M):
+                    temp_sum += devij_compute(matrix_train, Gclus, j, k)
+
+                cv1[j] = aver_cvi + temp_sum / (M - 1)
+            else:
+                cv1[j] = cvi[j]
+
+        sorted_index = np.argsort(-cv1)
+        reMatrix[i] = sorted_index
+        preMatrix[i] = cv1
+
+    return reMatrix, preMatrix
+
+
+def recommand(reMatrix, clusterMatrix, vec_user, Top_k):
+
+    min_dist = const_maxfloat
+    min_index = 0
+
+    for i in range(len(clusterMatrix)):
+
+        dist = np.linalg.norm(vec_user - clusterMatrix[i])
+
+        if dist < min_dist:
+            min_dist = dist
+            min_index = i
+
+    return reMatrix[min_index, :Top_k], min_index
+
+
+def recall_compute(matrix_train, Gclus, matrix_test, Top_k):
+
+    recall = np.zeros(matrix_test.shape[0])
+
+    reMatrix = recommand_matrix(matrix_train, Gclus)[0]
+
+    clusterMatrix = np.zeros((len(Gclus), matrix_train.shape[1]))
+    for i in range(len(Gclus)):
+        cvi = caij_compute(matrix_train, Gclus[i])
+        clusterMatrix[i] = cvi
+
+    for i in range(matrix_test.shape[0]):
+
+        # 命中次数
+        hit_count = 0
+
+        # 关注的主题数
+        follow_count = 0
+
+        for j in range(matrix_test.shape[1]):
+
+            if matrix_test[i, j] != 0.0:
+                follow_count += 1
+                temp_vec = matrix_test[i]
+                temp_vec[j] = 0.0
+
+                reList = recommand(reMatrix, clusterMatrix, temp_vec, Top_k)[0]
+
+                if j in set(reList):
+                    hit_count += 1
+
+        recall[i] = hit_count / follow_count
+
+    aver_recall = np.mean(recall)
+
+    return aver_recall
+
+
+def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
+
+    RMSE = np.zeros(matrix_test.shape[0])
+
+    reMatrix, preMatrix = recommand_matrix(matrix_train, Gclus)
+
+    clusterMatrix = np.zeros((len(Gclus), matrix_train.shape[1]))
+    for i in range(len(Gclus)):
+        cvi = caij_compute(matrix_train, Gclus[i])
+        clusterMatrix[i] = cvi
+
+    for i in range(matrix_test.shape[0]):
+
+        # 关注的主题数
+        follow_count = 0
+
+        temp_sum = 0
+
+        for j in range(matrix_test.shape[1]):
+
+            if matrix_test[i, j] != 0.0:
+                follow_count += 1
+                temp_vec = matrix_test[i]
+                temp_vec[j] = 0.0
+
+                reList, reIndex = recommand(reMatrix, clusterMatrix, temp_vec, Top_k)
+
+                if j in set(reList):
+                    temp_sum += (preMatrix[reIndex, j] - matrix_test[i, j])**2
+                else:
+                    temp_sum += matrix_test[i, j]**2
+
+        if follow_count != 0:
+            RMSE[i] = math.sqrt(temp_sum / follow_count)
+        else:
+            RMSE[i] = 0
+
+    aver_RMSE = np.mean(RMSE)
+
+    return aver_RMSE
+
+
 usersCount, topicCount = users_topics_count('douban1.txt')
 interestedMatrix = interested_matrix_compute(usersCount, topicCount)
+print('interestedMatrix complete')
+print(interestedMatrix.shape)
 
-core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(interestedMatrix, 10)
+N = interestedMatrix.shape[0]
+Train_Matrix = interestedMatrix[:int(4 * N / 5), :]
+Test_Matrix = interestedMatrix[:int(4 * N / 5) + 1, :]
 
-all_users_cluster_g = All_users_cluster(interestedMatrix, core_cluster_g)
+core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(Train_Matrix, 10)
+print('SNAP_cluster_algorithm complete')
 
-print(all_users_cluster_g)
+all_users_cluster_g = All_users_cluster(Train_Matrix, core_cluster_g)
+print('All_users_cluster complete')
+
+Recall_g = recall_compute(Train_Matrix, all_users_cluster_g, Test_Matrix, 3)
+print('recall_compute complete')
+
+RMSE_g = RMSE_compute(Train_Matrix, all_users_cluster_g, Test_Matrix, 3)
+print('RMSE_compute complete')
+
+print(Recall_g)
+print(RMSE_g)
