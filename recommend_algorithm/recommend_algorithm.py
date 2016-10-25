@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import random
 
 const_maxfloat = 1.7976931348623157e+308
 
@@ -8,6 +9,18 @@ const_delta = 0.001
 
 # 密度阈值
 const_lambda = 0.008
+
+
+def random_matrix(row, column):
+
+    m = np.zeros((row, column))
+
+    for i in range(row):
+        for j in range(column):
+            x = int(random.randint(0, 5))
+            m[i, j] = x
+
+    return m
 
 
 def users_topics_count(filename):
@@ -334,11 +347,13 @@ def recommand(reMatrix, clusterMatrix, vec_user, Top_k):
 
 def recall_compute(matrix_train, Gclus, matrix_test, Top_k):
 
+    M = matrix_train.shape[1]
+
     recall = np.zeros(matrix_test.shape[0])
 
     reMatrix = recommand_matrix(matrix_train, Gclus)[0]
 
-    clusterMatrix = np.zeros((len(Gclus), matrix_train.shape[1]))
+    clusterMatrix = np.zeros((len(Gclus), M))
     for i in range(len(Gclus)):
         cvi = caij_compute(matrix_train, Gclus[i])
         clusterMatrix[i] = cvi
@@ -351,11 +366,13 @@ def recall_compute(matrix_train, Gclus, matrix_test, Top_k):
         # 关注的主题数
         follow_count = 0
 
-        for j in range(matrix_test.shape[1]):
+        for j in range(M):
 
             if matrix_test[i, j] != 0.0:
                 follow_count += 1
-                temp_vec = matrix_test[i]
+                temp_vec = np.zeros(M)
+                for k in range(M):
+                    temp_vec[k] = matrix_test[i, j]
                 temp_vec[j] = 0.0
 
                 reList = recommand(reMatrix, clusterMatrix, temp_vec, Top_k)[0]
@@ -372,11 +389,13 @@ def recall_compute(matrix_train, Gclus, matrix_test, Top_k):
 
 def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
 
+    M = matrix_train.shape[1]
+
     RMSE = np.zeros(matrix_test.shape[0])
 
     reMatrix, preMatrix = recommand_matrix(matrix_train, Gclus)
 
-    clusterMatrix = np.zeros((len(Gclus), matrix_train.shape[1]))
+    clusterMatrix = np.zeros((len(Gclus), M))
     for i in range(len(Gclus)):
         cvi = caij_compute(matrix_train, Gclus[i])
         clusterMatrix[i] = cvi
@@ -388,11 +407,13 @@ def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
 
         temp_sum = 0
 
-        for j in range(matrix_test.shape[1]):
+        for j in range(M):
 
             if matrix_test[i, j] != 0.0:
                 follow_count += 1
-                temp_vec = matrix_test[i]
+                temp_vec = np.zeros(M)
+                for k in range(M):
+                    temp_vec[k] = matrix_test[i, j]
                 temp_vec[j] = 0.0
 
                 reList, reIndex = recommand(reMatrix, clusterMatrix, temp_vec, Top_k)
@@ -412,14 +433,15 @@ def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
     return aver_RMSE
 
 
-usersCount, topicCount = users_topics_count('douban1.txt')
-interestedMatrix = interested_matrix_compute(usersCount, topicCount)
+# usersCount, topicCount = users_topics_count('douban1.txt')
+# interestedMatrix = interested_matrix_compute(usersCount, topicCount)
+interestedMatrix = random_matrix(10, 5)
 print('interestedMatrix complete')
 print(interestedMatrix.shape)
 
-N = interestedMatrix.shape[0]
-Train_Matrix = interestedMatrix[:int(4 * N / 5), :]
-Test_Matrix = interestedMatrix[:int(4 * N / 5) + 1, :]
+N_g = interestedMatrix.shape[0]
+Train_Matrix = interestedMatrix[:int(4 * N_g / 5), :]
+Test_Matrix = interestedMatrix[:int(4 * N_g / 5) + 1, :]
 
 core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(Train_Matrix, 10)
 print('SNAP_cluster_algorithm complete')
@@ -435,3 +457,4 @@ print('RMSE_compute complete')
 
 print(Recall_g)
 print(RMSE_g)
+
