@@ -420,12 +420,12 @@ def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
                 reList, reIndex = recommand(reMatrix, clusterMatrix, temp_vec, Top_k)
 
                 if j in set(reList):
-                    temp_sum += (preMatrix[reIndex, j] - matrix_test[i, j])**2
+                    temp_sum += abs(preMatrix[reIndex, j] - matrix_test[i, j])
                 else:
-                    temp_sum += matrix_test[i, j]**2
+                    temp_sum += abs(matrix_test[i, j])
 
         if follow_count != 0:
-            RMSE[i] = math.sqrt(temp_sum / follow_count)
+            RMSE[i] = temp_sum / follow_count
         else:
             RMSE[i] = 0
 
