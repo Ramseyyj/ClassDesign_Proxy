@@ -1,6 +1,6 @@
 import numpy as np
 import math
-import random
+from numpy import random
 
 const_maxfloat = 1.7976931348623157e+308
 
@@ -11,15 +11,24 @@ const_delta = 0.001
 const_lambda = 0.008
 
 
-# 生成一个row*column的矩阵，值范围为
-def random_matrix(row, column):
+def sparse_matrix_generate(row, column, density):
 
-    m = np.zeros((row, column))
+    m = random.randint(1, 5, (row, column))
 
+    delete_total = int(row * column * (1 - density))
+
+    non_zero_list = []
     for i in range(row):
         for j in range(column):
-            x = int(random.randint(0, 5))
-            m[i, j] = x
+            non_zero_list.append((i, j))
+
+    deleted_count = 0
+    while deleted_count < delete_total:
+        x = random.randint(0, len(non_zero_list)-1)
+        i, j = non_zero_list[x]
+        non_zero_list.pop(x)
+        deleted_count += 1
+        m[i, j] = 0.0
 
     return m
 
@@ -381,7 +390,10 @@ def recall_compute(matrix_train, Gclus, matrix_test, Top_k):
                 if j in set(reList):
                     hit_count += 1
 
-        recall[i] = hit_count / follow_count
+        if follow_count == 0:
+            recall[i] = 0
+        else:
+            recall[i] = hit_count / follow_count
 
     aver_recall = np.mean(recall)
 
@@ -436,7 +448,7 @@ def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
 
 # usersCount, topicCount = users_topics_count('douban1.txt')
 # interestedMatrix = interested_matrix_compute(usersCount, topicCount)
-interestedMatrix = random_matrix(500, 50)
+interestedMatrix = sparse_matrix_generate(500, 50, 0.05)
 TOP_K = 30
 
 N_g = interestedMatrix.shape[0]
