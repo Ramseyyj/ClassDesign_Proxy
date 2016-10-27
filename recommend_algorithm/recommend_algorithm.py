@@ -33,6 +33,16 @@ def sparse_matrix_generate(row, column, density):
     return m
 
 
+def matrix_to_txt(matrix, filename):
+    np.savetxt(filename, matrix, fmt='%r', newline='\n')
+
+
+def txt_to_matrix(filename):
+    matrix = np.loadtxt(filename)
+
+    return matrix
+
+
 def users_topics_count(filename):
 
     file_score = open(filename, 'r')
@@ -407,6 +417,7 @@ def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
     RMSE = np.zeros(matrix_test.shape[0])
 
     reMatrix, preMatrix = recommand_matrix(matrix_train, Gclus)
+    # matrix_to_txt(preMatrix, 'preMatrix.txt')
 
     clusterMatrix = np.zeros((len(Gclus), M))
     for i in range(len(Gclus)):
@@ -446,9 +457,10 @@ def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
     return aver_RMSE
 
 
-# usersCount, topicCount = users_topics_count('douban1.txt')
-# interestedMatrix = interested_matrix_compute(usersCount, topicCount)
 interestedMatrix = sparse_matrix_generate(500, 50, 0.5)
+matrix_to_txt(interestedMatrix, 'interested_matrix.txt')
+interestedMatrix = txt_to_matrix('interested_matrix.txt')
+
 TOP_K = 30
 
 N_g = interestedMatrix.shape[0]
