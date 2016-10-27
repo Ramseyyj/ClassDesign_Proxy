@@ -448,12 +448,12 @@ def RMSE_compute(matrix_train, Gclus, matrix_test, Top_k):
 
 # usersCount, topicCount = users_topics_count('douban1.txt')
 # interestedMatrix = interested_matrix_compute(usersCount, topicCount)
-interestedMatrix = sparse_matrix_generate(500, 50, 0.05)
+interestedMatrix = sparse_matrix_generate(500, 50, 0.5)
 TOP_K = 30
 
 N_g = interestedMatrix.shape[0]
 Train_Matrix = interestedMatrix[:int(4 * N_g / 5), :]
-Test_Matrix = interestedMatrix[:int(4 * N_g / 5) + 1, :]
+Test_Matrix = interestedMatrix[int(4 * N_g / 5) + 1:, :]
 
 core_cluster_g, Amb_g, dvst_g = SNAP_cluster_algorithm(Train_Matrix, 10)
 
